@@ -1,0 +1,21 @@
+{
+  "name": "curr",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "swenlii",
+  "license": "ISC",
+  "dependencies": {
+    "forever": "^3.0.4",
+    "lokijs": "^1.5.11",
+    "mysql": "^2.18.1",
+    "mysql2": "^2.2.5",
+    "nedb": "^1.8.0",
+    "node-binance-api": "^0.12.5",
+    "node-cron": "^3.0.0",
+    "node-telegram-bot-api": "^0.52.0"
+  }
+}
