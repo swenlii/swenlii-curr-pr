@@ -19,7 +19,8 @@ const  myId = params.telegram_id;
 const  bot  =  new  TelegramBot ( token ,  { polling : false } ) ;
 
 let price = [];
-let messages = [];
+let time_m = [];
+let traff = [];
 
 function returnPoolConnection() {
     var error = null;
@@ -49,7 +50,7 @@ async function savePrices (curr_str, value) {
     price[curr_str] = parseFloat (value);
 
     let prices = await pool.query('INSERT INTO `prices` (`curr_str`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?', [curr_str, value, value]);
-    let res = await pool.query('INSERT INTO `history` (`curr_str`, `value`, `date`) VALUES (?, ?, NOW())', [curr_str, value]);
+        let res = await pool.query('INSERT INTO `history` (`curr_str`, `value`, `date`) VALUES (?, ?, NOW())', [curr_str, value]);
 
     await checkNewValue(curr_str, value);
 }
@@ -73,14 +74,16 @@ async function checkNewValue (curr, newV) {
         let down = ((tenMin - n) / tenMin) * 100.0;
         if (down >= params.persent_curr_down) {
             // упало более чем на 10%
-            let res2 = await pool.query('INSERT INTO `traffic` (`curr_str`, `old_price`, `new_price`, `direction`) VALUES (?, ?, ?, ?)', [curr, tenMin, n, 'down']);
-            message = '🔴*' + curr + '* fell more than ' + params.persent_curr_down + '%. Old: ' + tenMin + ' Price now: ' + n;
-            console.log(message);
             if (params.telegram_bot){
-                if (messages[curr] && messages[curr].length > 0 && messages[curr].includes(message.slice(0, -8))){
-
+                let time10min = Date.now() - (params.time_curr_down + 1) * 60000;
+                // если время сохранено и время было менее 10 минут назад и есть движение и оно тоже вниз
+                if (time_m[curr] && time_m[curr].getTime() > time10min && traff[curr] && traff[curr] === 'down'){
+                    // ничего не делать
                 } else {
-                    messages[curr] = message;
+                    time_m[curr] = new Date(Date.now());
+                    traff[curr] = 'down';
+                    //let res2 = await pool.query('INSERT INTO `traffic` (`curr_str`, `old_price`, `new_price`, `direction`) VALUES (?, ?, ?, ?)', [curr, tenMin, n, 'down']);
+                    message = '🔴*' + curr + '* fell more than ' + params.persent_curr_down + '%. Old: ' + tenMin + ' Price now: ' + n;
                     bot.sendMessage(myId, message, {parse_mode: 'Markdown', disable_web_page_preview: true, disable_notification: true});
                 }
             }
@@ -92,25 +95,28 @@ async function checkNewValue (curr, newV) {
         let up = ((n - treeMin) / treeMin) * 100.0;
         if (up >= params.persent_curr_up) {
             // выросло на более 3 процентов
-            let res1 = await pool.query('INSERT INTO `traffic` (`curr_str`, `old_price`, `new_price`, `direction`) VALUES (?, ?, ?, ?)', [curr, treeMin, n, 'up']);
-            message = '🟢*' + curr + '* has grown by more than ' + params.persent_curr_up + '%. Old: ' + treeMin + ' Price now: ' + n;
-            console.log(message);
             if (params.telegram_bot){
-                if (messages[curr] && messages[curr].length > 0 && messages[curr].includes(message.slice(0, -8))){
-
+                let time3min = Date.now() - (params.time_curr_up + 1) * 60000;
+                // если время сохранено и время было менее 3 минут назад и есть движение и оно тоже вверх
+                if (time_m[curr] && time_m[curr].getTime() > time3min && traff[curr] && traff[curr] === 'up'){
+                    // ничего не делать
                 } else {
-                    messages[curr] = message;
+                    time_m[curr] = new Date(Date.now());
+                    traff[curr] = 'up';
+                    //let res1 = await pool.query('INSERT INTO `traffic` (`curr_str`, `old_price`, `new_price`, `direction`) VALUES (?, ?, ?, ?)', [curr, treeMin, n, 'up']);
+                    message = '🟢*' + curr + '* has grown by more than ' + params.persent_curr_up + '%. Old: ' + treeMin + ' Price now: ' + n;
                     bot.sendMessage(myId, message, {parse_mode: 'Markdown', disable_web_page_preview: true, disable_notification: true});
                 }
             }
         }
     }
-    if (message.length > 0){
-        messages[curr] = message
-    }
 }
 
 async function main() {
+    let time = parseInt(params.time_curr_up);
+    if (params.time_curr_up < parseInt(params.time_curr_down)) time = parseInt(params.time_curr_down);
+    let res3 = pool.query('DELETE FROM `history` WHERE `date` <= DATE_SUB(NOW(), INTERVAL ? MINUTE)', [time + 2]);
+    let res4 = pool.query('DELETE FROM `traffic` WHERE `traffic_new_date` <= DATE_SUB(NOW(), INTERVAL 1 DAY)');
     let ticker = await binance.prices();
     console.log('wait...');
     let adds = 0;
@@ -121,16 +127,18 @@ async function main() {
     console.log('Success! (' + adds + ')');
 };
 
-cron.schedule('*/20 * * * * *', () => {
-    main();
-});
+main();
 
-cron.schedule('*/5 * * * *', () => {
-    let time = params.time_curr_up;
-    if (params.time_curr_up < params.time_curr_down) time = params.time_curr_down;
-    let res3 = pool.query('DELETE FROM `history` WHERE `date` <= DATE_SUB(NOW(), INTERVAL ? MINUTE)', [time + 2]);
-    let res4 = pool.query('DELETE FROM `traffic` WHERE `traffic_new_date` <= DATE_SUB(NOW(), INTERVAL ? MINUTE)', [time + 2]);
-});
+//cron.schedule('*/20 * * * * *', () => {
+//    main();
+//});
+
+//cron.schedule('*/5 * * * *', () => {
+//    let time = parseInt(params.time_curr_up);
+//    if (params.time_curr_up < parseInt(params.time_curr_down)) time = parseInt(params.time_curr_down);
+//    let res3 = pool.query('DELETE FROM `history` WHERE `date` <= DATE_SUB(NOW(), INTERVAL ? MINUTE)', [time + 2]);
+//    let res4 = pool.query('DELETE FROM `traffic` WHERE `traffic_new_date` <= DATE_SUB(NOW(), INTERVAL 1 DAY)');
+//});
 
 
 
