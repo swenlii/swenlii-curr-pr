@@ -6,6 +6,11 @@
 
 💸 отслеживание курса валюты
 
+
+<div align="center">
+<img src="https://swenlii.github.io/img/projects/curr-project.png" width="700px">
+</div>
+
 ## ⚡ Описание проекта.
 
 **Год разработки:** 2021 год
