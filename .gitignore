@@ -1,0 +1,6 @@
+*.pdf
+/node_modules/
+*.png
+*.jpg
+*.jpeg
+

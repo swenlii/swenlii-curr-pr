@@ -1,0 +1,20 @@
+{
+  "name": "curr",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node curr_20_sec.js",
+    "start": "node curr_ws.js"
+  },
+  "author": "swenlii",
+  "license": "ISC",
+  "dependencies": {
+    "forever": "^3.0.4",
+    "mysql": "^2.18.1",
+    "mysql2": "^2.2.5",
+    "node-binance-api": "^0.12.5",
+    "node-cron": "^3.0.0",
+    "node-telegram-bot-api": "^0.52.0"
+  }
+}
